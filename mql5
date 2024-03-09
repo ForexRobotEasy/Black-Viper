@@ -1,0 +1,73 @@
+
+// Program: Black Viper
+// Developer's Site: forexroboteasy.com
+// Development: Forex Robot Easy Team
+
+// Include necessary libraries
+#include <Trade/Trade.mqh>
+#include <Trade/TradeConstants.mqh>
+#include <Trade/TradeProtector.mqh>
+
+// Define constants
+#define SL_DISTANCE 30       // Stop Loss distance in pips
+#define TP_DISTANCE 50       // Take Profit distance in pips
+#define TS_DISTANCE 20       // Trailing Stop distance in pips
+#define NFP_TRADING true     // Enable NFP trading
+
+// Define trading functions
+void PlacePendingOrder(double price, ENUM_ORDER_TYPE type, double sl, double tp)
+{
+    CTrade trade;
+    trade.PositionOpen('Black Viper', type, price, sl, tp);
+}
+
+void SetStopLoss(double price, ENUM_ORDER_TYPE type)
+{
+    CTrade trade;
+    trade.PositionModify('Black Viper', type, 0, price, 0);
+}
+
+void SetTakeProfit(double price, ENUM_ORDER_TYPE type)
+{
+    CTrade trade;
+    trade.PositionModify('Black Viper', type, 0, 0, price);
+}
+
+void SetTrailingStop(double distance, ENUM_ORDER_TYPE type)
+{
+    CTradeProtector protector;
+    protector.SetTrailingStop(distance, type);
+}
+
+// Main function
+void OnTick()
+{
+    // Analyze the market
+    double currentPrice = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+    
+    // Place pending orders based on specific conditions
+    if (currentPrice > MarketInfo(_Symbol, MODE_HIGH, 1))
+    {
+        double pendingPrice = NormalizeDouble(currentPrice + 10 * _Point, _Digits);
+        PlacePendingOrder(pendingPrice, ORDER_TYPE_BUY_LIMIT, pendingPrice - SL_DISTANCE * _Point, pendingPrice + TP_DISTANCE * _Point);
+    }
+    else if (currentPrice < MarketInfo(_Symbol, MODE_LOW, 1))
+    {
+        double pendingPrice = NormalizeDouble(currentPrice - 10 * _Point, _Digits);
+        PlacePendingOrder(pendingPrice, ORDER_TYPE_SELL_LIMIT, pendingPrice + SL_DISTANCE * _Point, pendingPrice - TP_DISTANCE * _Point);
+    }
+    
+    // Enable NFP trading
+    if (NFP_TRADING)
+    {
+        // Set stop loss, take profit, and trailing stop for existing positions
+        double stopLoss = NormalizeDouble(currentPrice - SL_DISTANCE * _Point, _Digits);
+        double takeProfit = NormalizeDouble(currentPrice + TP_DISTANCE * _Point, _Digits);
+        SetStopLoss(stopLoss, ORDER_TYPE_BUY);
+        SetStopLoss(stopLoss, ORDER_TYPE_SELL);
+        SetTakeProfit(takeProfit, ORDER_TYPE_BUY);
+        SetTakeProfit(takeProfit, ORDER_TYPE_SELL);
+        SetTrailingStop(TS_DISTANCE * _Point, ORDER_TYPE_BUY);
+        SetTrailingStop(TS_DISTANCE * _Point, ORDER_TYPE_SELL);
+    }
+}
